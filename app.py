@@ -1,7 +1,8 @@
 import os
 import json
+import re # Import the regular expressions library
 import fitz  # PyMuPDF
-import openai
+import google.generativeai as genai # Import Google's library
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -11,94 +12,85 @@ load_dotenv()
 
 # Initialize the Flask application
 app = Flask(__name__)
+CORS(app)  # Enable Cross-Origin Resource Sharing
 
-# Enable Cross-Origin Resource Sharing (CORS) to allow the frontend to call the backend
-CORS(app)
-
-# Configure the OpenAI client
-# It automatically reads the OPENAI_API_KEY from your environment variables on Render
+# --- NEW: Configure the Google Gemini Client ---
 try:
-    client = openai.OpenAI()
-except openai.OpenAIError as e:
-    print(f"Error initializing OpenAI client: {e}")
-    client = None
+    # It automatically reads the GOOGLE_API_KEY from your environment variables
+    genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+except Exception as e:
+    print(f"Error configuring Google Gemini client: {e}")
 
 def generate_quiz_from_text(text):
     """
-    Sends extracted text to the OpenAI API to generate quiz questions.
+    Sends extracted text to the Google Gemini API to generate quiz questions.
     """
-    if not client:
-        raise ConnectionError("OpenAI client is not initialized. Check your API key in Render.")
+    # --- NEW: Initialize the Gemini Pro model ---
+    model = genai.GenerativeModel('gemini-pro')
 
     num_mcq = 5
     num_tf = 5
 
-    # This prompt is crucial. It clearly instructs the model on the task and JSON format.
+    # This prompt is crucial and has been slightly optimized for Gemini.
     prompt = f"""
-    Based on the following text, please generate a quiz. The quiz should contain {num_mcq} multiple-choice questions
+    Based on the following text, please generate a quiz. The quiz must contain exactly {num_mcq} multiple-choice questions
     and {num_tf} true/false questions.
 
     The text is as follows:
     ---
-    {text[:4000]}
+    {text[:8000]} 
     ---
 
-    Please format the output as a single valid JSON object with two keys: "multiple_choice" and "true_false".
-    - The value for "multiple_choice" must be an array of objects, each with "question", "options" (an array of 4 strings), and "answer" (the correct option string).
+    You MUST format the output as a single, valid JSON object with two keys: "multiple_choice" and "true_false".
+    - The value for "multiple_choice" must be an array of objects, each with "question", "options" (an array of exactly 4 strings), and "answer".
     - The value for "true_false" must be an array of objects, each with "question" and "answer" (a string, either "True" or "False").
+    Do not include any text, notes, or markdown formatting before or after the JSON object.
     """
 
     try:
-        completion = client.chat.completions.create(
-            # Using the standard, reliable model for this task.
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant designed to create quizzes for educators and output JSON."},
-                {"role": "user", "content": prompt}
-            ]
-        )
-        response_content = completion.choices[0].message.content
-        return json.loads(response_content)
+        # --- NEW: Call the Gemini API ---
+        response = model.generate_content(prompt)
+        
+        # --- NEW: Clean up the response to ensure it's valid JSON ---
+        # Gemini sometimes wraps the JSON in ```json ... ```, so we extract it.
+        response_text = response.text
+        json_match = re.search(r'```json\s*(\{.*?\})\s*```', response_text, re.DOTALL)
+        if json_match:
+            clean_json = json_match.group(1)
+        else:
+            clean_json = response_text
 
-    except openai.APIError as e:
-        print(f"OpenAI API Error: {e}")
-        raise ConnectionAbortedError(f"Failed to get a response from the AI model: {e}")
-    except json.JSONDecodeError:
-        print(f"Error decoding JSON from LLM response. Response was: {response_content}")
-        raise ValueError("The AI model returned a response that was not valid JSON.")
+        return json.loads(clean_json)
+
     except Exception as e:
         print(f"An unexpected error occurred during AI generation: {e}")
-        raise
+        print(f"Raw response from AI was: {response.text if 'response' in locals() else 'No response'}")
+        raise ValueError("Failed to get a valid JSON response from the AI model.")
 
+
+# The rest of the file remains the same...
 @app.route('/')
 def index():
-    """A simple route to test if the backend server is running."""
-    return "<h1>Quiz Generator Backend</h1><p>The server is running. Use the /generate-quiz endpoint to create a quiz.</p>"
+    return "<h1>Quiz Generator Backend (Gemini Version)</h1><p>The server is running.</p>"
 
 @app.route('/generate-quiz', methods=['POST'])
 def generate_quiz_endpoint():
-    """
-    The main API endpoint to handle PDF upload and quiz generation.
-    """
     if 'pdf' not in request.files:
-        return jsonify({"error": "No PDF file was provided in the request."}), 400
+        return jsonify({"error": "No PDF file was provided."}), 400
 
     file = request.files['pdf']
-
     if file.filename == '':
         return jsonify({"error": "No file was selected."}), 400
-
     if not file.filename.lower().endswith('.pdf'):
         return jsonify({"error": "Invalid file type. Please upload a PDF."}), 400
 
     try:
         pdf_bytes = file.read()
-        
         with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
             text = "".join(page.get_text() for page in doc)
         
         if not text.strip():
-            return jsonify({"error": "Could not extract any text from the PDF. The file might be empty or image-based."}), 400
+            return jsonify({"error": "Could not extract text from the PDF."}), 400
 
         quiz_data = generate_quiz_from_text(text)
         
@@ -109,9 +101,7 @@ def generate_quiz_endpoint():
 
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
-        # Return a generic server error message to the user for security
-        return jsonify({"error": f"An internal server error occurred. Please check the logs."}), 500
+        return jsonify({"error": f"An internal server error occurred: {str(e)}"}), 500
 
 if __name__ == '__main__':
-    # For local development only
     app.run(host='0.0.0.0', port=5000, debug=True)
