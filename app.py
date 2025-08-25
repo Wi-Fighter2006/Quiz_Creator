@@ -1,22 +1,18 @@
 import os
 import json
-import re # Import the regular expressions library
+import re
 import fitz  # PyMuPDF
-import google.generativeai as genai # Import Google's library
+import google.generativeai as genai
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 
-# Load environment variables from .env file (for local development)
 load_dotenv()
-
-# Initialize the Flask application
 app = Flask(__name__)
-CORS(app)  # Enable Cross-Origin Resource Sharing
+CORS(app)
 
-# --- NEW: Configure the Google Gemini Client ---
+# Configure the Google Gemini Client
 try:
-    # It automatically reads the GOOGLE_API_KEY from your environment variables
     genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 except Exception as e:
     print(f"Error configuring Google Gemini client: {e}")
@@ -25,16 +21,20 @@ def generate_quiz_from_text(text):
     """
     Sends extracted text to the Google Gemini API to generate quiz questions.
     """
-    # --- NEW: Initialize the Gemini Pro model ---
     model = genai.GenerativeModel('gemini-pro')
 
-    num_mcq = 5
-    num_tf = 5
+    # --- NEW: Define less strict safety settings ---
+    # This is often necessary for processing diverse academic texts.
+    safety_settings = [
+        {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+        {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+        {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+        {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+    ]
 
-    # This prompt is crucial and has been slightly optimized for Gemini.
     prompt = f"""
-    Based on the following text, please generate a quiz. The quiz must contain exactly {num_mcq} multiple-choice questions
-    and {num_tf} true/false questions.
+    Based on the following text, please generate a quiz. The quiz must contain exactly 5 multiple-choice questions
+    and 5 true/false questions.
 
     The text is as follows:
     ---
@@ -46,29 +46,35 @@ def generate_quiz_from_text(text):
     - The value for "true_false" must be an array of objects, each with "question" and "answer" (a string, either "True" or "False").
     Do not include any text, notes, or markdown formatting before or after the JSON object.
     """
-
+    
+    response_text = ""
     try:
-        # --- NEW: Call the Gemini API ---
-        response = model.generate_content(prompt)
-        
-        # --- NEW: Clean up the response to ensure it's valid JSON ---
-        # Gemini sometimes wraps the JSON in ```json ... ```, so we extract it.
+        # --- MODIFIED: Pass the safety_settings to the API call ---
+        response = model.generate_content(prompt, safety_settings=safety_settings)
         response_text = response.text
+        
+        # Clean up the response to ensure it's valid JSON
         json_match = re.search(r'```json\s*(\{.*?\})\s*```', response_text, re.DOTALL)
         if json_match:
             clean_json = json_match.group(1)
         else:
+            # If no markdown block is found, assume the whole text is the JSON
             clean_json = response_text
 
         return json.loads(clean_json)
 
     except Exception as e:
-        print(f"An unexpected error occurred during AI generation: {e}")
-        print(f"Raw response from AI was: {response.text if 'response' in locals() else 'No response'}")
+        # --- IMPROVED LOGGING ---
+        # This will show us exactly what the AI returned if something goes wrong.
+        print(f"An error occurred during AI generation: {e}")
+        print(f"--- RAW RESPONSE FROM AI WAS ---")
+        print(response_text)
+        print(f"--- END OF RAW RESPONSE ---")
         raise ValueError("Failed to get a valid JSON response from the AI model.")
 
 
-# The rest of the file remains the same...
+# --- No changes below this line ---
+
 @app.route('/')
 def index():
     return "<h1>Quiz Generator Backend (Gemini Version)</h1><p>The server is running.</p>"
