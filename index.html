@@ -115,11 +115,13 @@
             statusMessage.innerText = 'Uploading and processing your PDF... This may take a moment.';
 
             try {
-                // ============================ CRITICAL CHANGE HERE ============================
-                // Replace the URL below with your actual Render Web Service URL.
-                // It must point to your BACKEND, not your frontend.
-                const backendUrl = 'https://<YOUR_BACKEND_SERVICE_NAME>.onrender.com/generate-quiz';
-                // ==============================================================================
+                // ============================ FINAL STEP: PASTE YOUR BACKEND URL HERE ============================
+                // 1. Go to your Render Dashboard.
+                // 2. Click on your Python "Web Service".
+                // 3. Copy its URL (it is DIFFERENT from your frontend URL).
+                // 4. Paste it below, replacing the entire string.
+                const backendUrl = 'https://<YOUR_PYTHON_WEB_SERVICE_URL_HERE>.onrender.com/generate-quiz';
+                // ===============================================================================================
 
                 const response = await fetch(backendUrl, {
                     method: 'POST',
@@ -225,4 +227,4 @@
         });
     </script>
 </body>
-</html>
+</html>```
