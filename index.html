@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Quiz Generator from PDF</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Simple spinner animation */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #09f;
+            animation: spin 1s ease infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-900">AI Quiz Generator</h1>
+            <p class="text-lg text-gray-600 mt-2">Upload a PDF chapter and instantly generate a quiz for your students.</p>
+        </header>
+
+        <!-- PDF Upload Section -->
+        <div id="upload-section" class="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-md border border-gray-200">
+            <form id="pdf-upload-form">
+                <h2 class="text-2xl font-semibold mb-4 text-center">Get Started</h2>
+                <div class="mb-6">
+                    <label for="pdf-file" class="block mb-2 text-sm font-medium text-gray-700">Select PDF File:</label>
+                    <input type="file" id="pdf-file" name="pdf-file" accept=".pdf" required
+                           class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:bg-gray-800 file:text-white file:border-0 file:py-2 file:px-4 file:mr-4 hover:file:bg-gray-700">
+                </div>
+                <button type="submit" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-300">
+                    Generate Quiz
+                </button>
+            </form>
+        </div>
+
+        <!-- Loading/Status Section -->
+        <div id="status-section" class="hidden max-w-2xl mx-auto mt-8 text-center bg-white p-8 rounded-xl shadow-md border border-gray-200">
+            <div class="flex justify-center items-center mb-4">
+                <div class="spinner"></div>
+            </div>
+            <p id="status-message" class="text-lg font-medium text-gray-700">Processing your document...</p>
+        </div>
+        
+        <!-- Error Message Section -->
+        <div id="error-section" class="hidden max-w-2xl mx-auto mt-8 text-center bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg" role="alert">
+            <strong class="font-bold">An error occurred!</strong>
+            <span id="error-message" class="block sm:inline"></span>
+        </div>
+
+
+        <!-- Results Section -->
+        <div id="results-section" class="hidden max-w-4xl mx-auto mt-12">
+            <div class="flex justify-between items-center mb-6">
+                 <h2 class="text-3xl font-bold text-gray-900">Generated Quiz</h2>
+                 <button id="export-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-300">
+                    Export as .txt
+                </button>
+            </div>
+
+            <div class="bg-white p-6 md:p-8 rounded-xl shadow-md border border-gray-200 space-y-8">
+                <!-- Multiple Choice Questions -->
+                <div id="mcq-container">
+                    <h3 class="text-2xl font-semibold border-b pb-2 mb-4">Multiple Choice Questions</h3>
+                    <!-- Questions will be injected here -->
+                </div>
+
+                <!-- True/False Questions -->
+                <div id="tf-container">
+                    <h3 class="text-2xl font-semibold border-b pb-2 mb-4">True/False Questions</h3>
+                    <!-- Questions will be injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadForm = document.getElementById('pdf-upload-form');
+        const pdfFile = document.getElementById('pdf-file');
+        const uploadSection = document.getElementById('upload-section');
+        const statusSection = document.getElementById('status-section');
+        const statusMessage = document.getElementById('status-message');
+        const errorSection = document.getElementById('error-section');
+        const errorMessage = document.getElementById('error-message');
+        const resultsSection = document.getElementById('results-section');
+        const exportBtn = document.getElementById('export-btn');
+
+        // Store generated data to be used for export
+        let quizDataForExport = null;
+
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!pdfFile.files.length) {
+                alert('Please select a PDF file to upload.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('pdf', pdfFile.files[0]);
+
+            // Reset UI
+            uploadSection.classList.add('hidden');
+            resultsSection.classList.add('hidden');
+            errorSection.classList.add('hidden');
+            statusSection.classList.remove('hidden');
+            statusMessage.innerText = 'Uploading and processing your PDF... This may take a moment.';
+
+            try {
+                // Replace with your actual backend endpoint
+                const response = await fetch('http://127.0.0.1:5000/generate-quiz', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                quizDataForExport = data; // Save for export
+                displayQuiz(data);
+
+                statusSection.classList.add('hidden');
+                resultsSection.classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Error:', error);
+                statusSection.classList.add('hidden');
+                errorMessage.innerText = error.message;
+                errorSection.classList.remove('hidden');
+                // Show upload section again so user can retry
+                uploadSection.classList.remove('hidden');
+            }
+        });
+
+        function displayQuiz(data) {
+            const mcqContainer = document.getElementById('mcq-container');
+            const tfContainer = document.getElementById('tf-container');
+
+            // Clear previous results
+            mcqContainer.innerHTML = '<h3 class="text-2xl font-semibold border-b pb-2 mb-4">Multiple Choice Questions</h3>';
+            tfContainer.innerHTML = '<h3 class="text-2xl font-semibold border-b pb-2 mb-4">True/False Questions</h3>';
+
+            // Display Multiple Choice Questions
+            if (data.multiple_choice && data.multiple_choice.length > 0) {
+                data.multiple_choice.forEach((item, index) => {
+                    const questionEl = document.createElement('div');
+                    questionEl.className = 'mb-6 p-4 border-l-4 border-gray-200';
+                    questionEl.innerHTML = `
+                        <p class="font-semibold mb-2">${index + 1}. ${item.question}</p>
+                        <ul class="list-disc list-inside space-y-1 text-gray-700">
+                            ${item.options.map(opt => `<li>${opt}</li>`).join('')}
+                        </ul>
+                        <button class="text-sm text-blue-600 hover:underline mt-2">Show Answer</button>
+                        <p class="hidden text-green-700 font-bold mt-1">Answer: ${item.answer}</p>
+                    `;
+                    mcqContainer.appendChild(questionEl);
+                });
+            } else {
+                 mcqContainer.innerHTML += '<p class="text-gray-500">No multiple-choice questions were generated.</p>';
+            }
+
+            // Display True/False Questions
+            if (data.true_false && data.true_false.length > 0) {
+                data.true_false.forEach((item, index) => {
+                    const questionEl = document.createElement('div');
+                    questionEl.className = 'mb-6 p-4 border-l-4 border-gray-200';
+                    questionEl.innerHTML = `
+                        <p class="font-semibold mb-2">${index + 1}. ${item.question}</p>
+                        <button class="text-sm text-blue-600 hover:underline mt-2">Show Answer</button>
+                        <p class="hidden text-green-700 font-bold mt-1">Answer: ${item.answer}</p>
+                    `;
+                    tfContainer.appendChild(questionEl);
+                });
+            } else {
+                tfContainer.innerHTML += '<p class="text-gray-500">No true/false questions were generated.</p>';
+            }
+
+            // Add event listeners for all "Show Answer" buttons
+            document.querySelectorAll('.results-section button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const answerEl = e.target.nextElementSibling;
+                    answerEl.classList.toggle('hidden');
+                    e.target.innerText = answerEl.classList.contains('hidden') ? 'Show Answer' : 'Hide Answer';
+                });
+            });
+        }
+
+        exportBtn.addEventListener('click', () => {
+            if (!quizDataForExport) {
+                alert('No quiz data to export!');
+                return;
+            }
+
+            let textContent = 'Generated Quiz\n\n';
+
+            textContent += '--- Multiple Choice Questions ---\n\n';
+            quizDataForExport.multiple_choice.forEach((item, index) => {
+                textContent += `${index + 1}. ${item.question}\n`;
+                item.options.forEach(opt => textContent += `- ${opt}\n`);
+                textContent += `Answer: ${item.answer}\n\n`;
+            });
+
+            textContent += '--- True/False Questions ---\n\n';
+            quizDataForExport.true_false.forEach((item, index) => {
+                textContent += `${index + 1}. ${item.question}\n`;
+                textContent += `Answer: ${item.answer}\n\n`;
+            });
+
+            const blob = new Blob([textContent], { type: 'text/plain' });
+            const anchor = document.createElement('a');
+            anchor.download = 'quiz_export.txt';
+            anchor.href = window.URL.createObjectURL(blob);
+            anchor.click();
+            window.URL.revokeObjectURL(anchor.href);
+        });
+
+    </script>
+</body>
+</html>
