@@ -74,13 +74,11 @@
                 <!-- Multiple Choice Questions -->
                 <div id="mcq-container">
                     <h3 class="text-2xl font-semibold border-b pb-2 mb-4">Multiple Choice Questions</h3>
-                    <!-- Questions will be injected here -->
                 </div>
 
                 <!-- True/False Questions -->
                 <div id="tf-container">
                     <h3 class="text-2xl font-semibold border-b pb-2 mb-4">True/False Questions</h3>
-                    <!-- Questions will be injected here -->
                 </div>
             </div>
         </div>
@@ -97,7 +95,6 @@
         const resultsSection = document.getElementById('results-section');
         const exportBtn = document.getElementById('export-btn');
 
-        // Store generated data to be used for export
         let quizDataForExport = null;
 
         uploadForm.addEventListener('submit', async (e) => {
@@ -111,7 +108,6 @@
             const formData = new FormData();
             formData.append('pdf', pdfFile.files[0]);
 
-            // Reset UI
             uploadSection.classList.add('hidden');
             resultsSection.classList.add('hidden');
             errorSection.classList.add('hidden');
@@ -119,18 +115,24 @@
             statusMessage.innerText = 'Uploading and processing your PDF... This may take a moment.';
 
             try {
-                const response = await fetch('https://quiz-creator-app.onrender.com', {
+                // ============================ CRITICAL CHANGE HERE ============================
+                // Replace the URL below with your actual Render Web Service URL.
+                // It must point to your BACKEND, not your frontend.
+                const backendUrl = 'https://<YOUR_BACKEND_SERVICE_NAME>.onrender.com/generate-quiz';
+                // ==============================================================================
+
+                const response = await fetch(backendUrl, {
                     method: 'POST',
                     body: formData,
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
+                    const errorData = await response.json().catch(() => ({ error: 'An unknown server error occurred.' }));
+                    throw new Error(errorData.error || `HTTP Error: Status ${response.status}`);
                 }
 
                 const data = await response.json();
-                quizDataForExport = data; // Save for export
+                quizDataForExport = data;
                 displayQuiz(data);
 
                 statusSection.classList.add('hidden');
@@ -141,8 +143,7 @@
                 statusSection.classList.add('hidden');
                 errorMessage.innerText = error.message;
                 errorSection.classList.remove('hidden');
-                // Show upload section again so user can retry
-                uploadSection.classList.remove('hidden');
+                uploadSection.classList.remove('hidden'); // Let user retry
             }
         });
 
@@ -150,11 +151,9 @@
             const mcqContainer = document.getElementById('mcq-container');
             const tfContainer = document.getElementById('tf-container');
 
-            // Clear previous results
             mcqContainer.innerHTML = '<h3 class="text-2xl font-semibold border-b pb-2 mb-4">Multiple Choice Questions</h3>';
             tfContainer.innerHTML = '<h3 class="text-2xl font-semibold border-b pb-2 mb-4">True/False Questions</h3>';
 
-            // Display Multiple Choice Questions
             if (data.multiple_choice && data.multiple_choice.length > 0) {
                 data.multiple_choice.forEach((item, index) => {
                     const questionEl = document.createElement('div');
@@ -164,7 +163,7 @@
                         <ul class="list-disc list-inside space-y-1 text-gray-700">
                             ${item.options.map(opt => `<li>${opt}</li>`).join('')}
                         </ul>
-                        <button class="text-sm text-blue-600 hover:underline mt-2">Show Answer</button>
+                        <button class="toggle-answer text-sm text-blue-600 hover:underline mt-2">Show Answer</button>
                         <p class="hidden text-green-700 font-bold mt-1">Answer: ${item.answer}</p>
                     `;
                     mcqContainer.appendChild(questionEl);
@@ -173,14 +172,13 @@
                  mcqContainer.innerHTML += '<p class="text-gray-500">No multiple-choice questions were generated.</p>';
             }
 
-            // Display True/False Questions
             if (data.true_false && data.true_false.length > 0) {
                 data.true_false.forEach((item, index) => {
                     const questionEl = document.createElement('div');
                     questionEl.className = 'mb-6 p-4 border-l-4 border-gray-200';
                     questionEl.innerHTML = `
                         <p class="font-semibold mb-2">${index + 1}. ${item.question}</p>
-                        <button class="text-sm text-blue-600 hover:underline mt-2">Show Answer</button>
+                        <button class="toggle-answer text-sm text-blue-600 hover:underline mt-2">Show Answer</button>
                         <p class="hidden text-green-700 font-bold mt-1">Answer: ${item.answer}</p>
                     `;
                     tfContainer.appendChild(questionEl);
@@ -189,8 +187,7 @@
                 tfContainer.innerHTML += '<p class="text-gray-500">No true/false questions were generated.</p>';
             }
 
-            // Add event listeners for all "Show Answer" buttons
-            document.querySelectorAll('.results-section button').forEach(button => {
+            document.querySelectorAll('.toggle-answer').forEach(button => {
                 button.addEventListener('click', (e) => {
                     const answerEl = e.target.nextElementSibling;
                     answerEl.classList.toggle('hidden');
@@ -206,7 +203,6 @@
             }
 
             let textContent = 'Generated Quiz\n\n';
-
             textContent += '--- Multiple Choice Questions ---\n\n';
             quizDataForExport.multiple_choice.forEach((item, index) => {
                 textContent += `${index + 1}. ${item.question}\n`;
@@ -214,20 +210,19 @@
                 textContent += `Answer: ${item.answer}\n\n`;
             });
 
-            textContent += '--- True/False Questions ---\n\n';
+            textContent += '\n--- True/False Questions ---\n\n';
             quizDataForExport.true_false.forEach((item, index) => {
                 textContent += `${index + 1}. ${item.question}\n`;
                 textContent += `Answer: ${item.answer}\n\n`;
             });
 
-            const blob = new Blob([textContent], { type: 'text/plain' });
+            const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
             const anchor = document.createElement('a');
             anchor.download = 'quiz_export.txt';
             anchor.href = window.URL.createObjectURL(blob);
             anchor.click();
             window.URL.revokeObjectURL(anchor.href);
         });
-
     </script>
 </body>
 </html>
