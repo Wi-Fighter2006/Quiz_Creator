@@ -1,6 +1,6 @@
 Flask
 Flask-Cors
-PyMuPDF
 openai
 python-dotenv
+PyMuPDF
 gunicorn
