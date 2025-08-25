@@ -18,10 +18,7 @@ except Exception as e:
     print(f"Error configuring Google Gemini client: {e}")
 
 def generate_quiz_from_text(text):
-    """
-    Sends extracted text to the Google Gemini API to generate quiz questions.
-    """
-    model = genai.GenerativeModel('gemini-pro')
+    model = genai.GenerativeModel('gemini-1.0-pro')
 
     # --- NEW: Define less strict safety settings ---
     # This is often necessary for processing diverse academic texts.
