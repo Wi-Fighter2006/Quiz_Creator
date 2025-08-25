@@ -119,8 +119,7 @@
             statusMessage.innerText = 'Uploading and processing your PDF... This may take a moment.';
 
             try {
-                // Replace with your actual backend endpoint
-                const response = await fetch('http://127.0.0.1:5000/generate-quiz', {
+                const response = await fetch('https://quiz-creator-app.onrender.com', {
                     method: 'POST',
                     body: formData,
                 });
