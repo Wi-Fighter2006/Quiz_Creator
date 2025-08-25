@@ -3,90 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Quiz Generator from PDF</title>
+    <title>AI Quiz Generator | Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Simple spinner animation */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #111827; /* Dark blue-gray */
+            overflow-x: hidden;
+        }
+
+        /* Animated Blob Background */
+        .background-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+        }
+        .blob-1 {
+            width: 400px;
+            height: 400px;
+            background: #8b5cf6; /* Violet */
+            top: -150px;
+            left: -150px;
+            animation: move 20s infinite alternate;
+        }
+        .blob-2 {
+            width: 300px;
+            height: 300px;
+            background: #3b82f6; /* Blue */
+            bottom: -100px;
+            right: -100px;
+            animation: move 25s infinite alternate-reverse;
+        }
+
+        @keyframes move {
+            from { transform: translate(0, 0) rotate(0deg); }
+            to { transform: translate(200px, 100px) rotate(360deg); }
+        }
+
+        /* Glassmorphism Effect */
+        .glass-card {
+            background: rgba(31, 41, 55, 0.5); /* bg-gray-800 with opacity */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Entry Animations */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in-up {
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+
+        /* Spinner */
         .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
+            border: 4px solid rgba(255, 255, 255, 0.2);
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            border-left-color: #09f;
-            animation: spin 1s ease infinite;
+            border-left-color: #a78bfa; /* Light violet */
+            animation: spin 1s linear infinite;
         }
-
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Interactive Upload Icon Animation */
+        #upload-icon { transition: transform 0.3s ease; }
+        #upload-label:hover #upload-icon { transform: scale(1.1) translateY(-5px); }
+        
+        /* Quiz Card Staggered Animation */
+        .quiz-card {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.5s ease-out forwards;
         }
     </style>
 </head>
-<body class="bg-gray-50 font-sans text-gray-800">
+<body class="text-gray-100">
 
-    <div class="container mx-auto p-4 md:p-8">
+    <div class="background-container">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
 
-        <header class="text-center mb-10">
-            <h1 class="text-4xl md:text-5xl font-bold text-gray-900">AI Quiz Generator</h1>
-            <p class="text-lg text-gray-600 mt-2">Upload a PDF chapter and instantly generate a quiz for your students.</p>
+    <div class="container mx-auto p-4 md:p-8 min-h-screen flex flex-col items-center justify-center">
+
+        <header class="text-center mb-12 fade-in-up" style="animation-delay: 100ms;">
+            <h1 class="text-4xl md:text-6xl font-bold text-white drop-shadow-lg">AI Quiz Generator Pro</h1>
+            <p class="text-lg text-gray-300 mt-3 max-w-2xl mx-auto">Transform any PDF into an interactive quiz instantly with the power of AI.</p>
         </header>
 
-        <!-- PDF Upload Section -->
-        <div id="upload-section" class="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-md border border-gray-200">
-            <form id="pdf-upload-form">
-                <h2 class="text-2xl font-semibold mb-4 text-center">Get Started</h2>
-                <div class="mb-6">
-                    <label for="pdf-file" class="block mb-2 text-sm font-medium text-gray-700">Select PDF File:</label>
-                    <input type="file" id="pdf-file" name="pdf-file" accept=".pdf" required
-                           class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:bg-gray-800 file:text-white file:border-0 file:py-2 file:px-4 file:mr-4 hover:file:bg-gray-700">
-                </div>
-                <button type="submit" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-300">
-                    Generate Quiz
-                </button>
-            </form>
-        </div>
+        <!-- Main content area -->
+        <main id="main-content" class="w-full">
+            <!-- PDF Upload Section -->
+            <div id="upload-section" class="w-full max-w-2xl mx-auto fade-in-up" style="animation-delay: 300ms;">
+                <form id="pdf-upload-form" class="glass-card p-8 rounded-2xl shadow-2xl">
+                    <label for="pdf-file" id="upload-label" class="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-500 rounded-lg cursor-pointer hover:border-violet-400 hover:bg-gray-800/50 transition-colors">
+                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                            <svg id="upload-icon" class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                            <p class="mb-2 text-sm text-gray-400"><span class="font-semibold">Click to upload</span> or drag and drop</p>
+                            <p id="file-name-display" class="text-xs text-gray-500">PDF (MAX. 5MB)</p>
+                        </div>
+                        <input type="file" id="pdf-file" name="pdf-file" accept=".pdf" required class="hidden">
+                    </label>
+                    <button type="submit" class="w-full mt-6 bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        Generate Quiz
+                    </button>
+                </form>
 
-        <!-- Loading/Status Section -->
-        <div id="status-section" class="hidden max-w-2xl mx-auto mt-8 text-center bg-white p-8 rounded-xl shadow-md border border-gray-200">
-            <div class="flex justify-center items-center mb-4">
-                <div class="spinner"></div>
+                <!-- How it Works Section -->
+                <div class="mt-12 text-center">
+                    <h3 class="text-xl font-semibold text-gray-300 mb-6">How It Works</h3>
+                    <div class="flex flex-col md:flex-row justify-center items-center space-y-6 md:space-y-0 md:space-x-8">
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-gray-700 p-3 rounded-full"><svg class="w-6 h-6 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg></div>
+                            <p>1. Upload your PDF</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-gray-700 p-3 rounded-full"><svg class="w-6 h-6 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                            <p>2. Our AI analyzes it</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-gray-700 p-3 rounded-full"><svg class="w-6 h-6 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg></div>
+                            <p>3. Get your quiz!</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <p id="status-message" class="text-lg font-medium text-gray-700">Processing your document...</p>
-        </div>
+
+            <!-- Loading/Status Section -->
+            <div id="status-section" class="hidden w-full max-w-2xl mx-auto text-center p-8">
+                <div class="flex justify-center items-center mb-4">
+                    <div class="spinner"></div>
+                </div>
+                <p id="status-message" class="text-lg font-medium text-gray-300">Processing your document...</p>
+            </div>
+            
+            <!-- Error Message Section -->
+            <div id="error-section" class="hidden w-full max-w-2xl mx-auto text-center bg-red-500/30 border border-red-500 text-white px-4 py-3 rounded-lg" role="alert">
+                <strong class="font-bold">An Error Occurred!</strong>
+                <span id="error-message" class="block sm:inline"></span>
+            </div>
+
+            <!-- Results Section -->
+            <div id="results-section" class="hidden w-full max-w-4xl mx-auto mt-12">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-8 px-4">
+                    <h2 class="text-3xl font-bold text-white drop-shadow-lg mb-4 md:mb-0">Your Quiz is Ready!</h2>
+                    <button id="export-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg focus:outline-none focus:shadow-outline transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        Export as .txt
+                    </button>
+                </div>
+                <div class="space-y-8">
+                    <div id="mcq-container"></div>
+                    <div id="tf-container"></div>
+                </div>
+            </div>
+        </main>
         
-        <!-- Error Message Section -->
-        <div id="error-section" class="hidden max-w-2xl mx-auto mt-8 text-center bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg" role="alert">
-            <strong class="font-bold">An error occurred!</strong>
-            <span id="error-message" class="block sm:inline"></span>
-        </div>
-
-
-        <!-- Results Section -->
-        <div id="results-section" class="hidden max-w-4xl mx-auto mt-12">
-            <div class="flex justify-between items-center mb-6">
-                 <h2 class="text-3xl font-bold text-gray-900">Generated Quiz</h2>
-                 <button id="export-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-300">
-                    Export as .txt
-                </button>
-            </div>
-
-            <div class="bg-white p-6 md:p-8 rounded-xl shadow-md border border-gray-200 space-y-8">
-                <!-- Multiple Choice Questions -->
-                <div id="mcq-container">
-                    <h3 class="text-2xl font-semibold border-b pb-2 mb-4">Multiple Choice Questions</h3>
-                </div>
-
-                <!-- True/False Questions -->
-                <div id="tf-container">
-                    <h3 class="text-2xl font-semibold border-b pb-2 mb-4">True/False Questions</h3>
-                </div>
-            </div>
-        </div>
+        <footer class="text-center text-gray-500 mt-16 pb-4">
+            <p>Powered by Generative AI</p>
+        </footer>
     </div>
 
     <script>
         const uploadForm = document.getElementById('pdf-upload-form');
         const pdfFile = document.getElementById('pdf-file');
+        const fileNameDisplay = document.getElementById('file-name-display');
+        const mainContent = document.getElementById('main-content');
         const uploadSection = document.getElementById('upload-section');
         const statusSection = document.getElementById('status-section');
         const statusMessage = document.getElementById('status-message');
@@ -97,13 +196,13 @@
 
         let quizDataForExport = null;
 
+        pdfFile.addEventListener('change', () => {
+            fileNameDisplay.textContent = pdfFile.files.length > 0 ? pdfFile.files[0].name : 'PDF (MAX. 5MB)';
+        });
+
         uploadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-
-            if (!pdfFile.files.length) {
-                alert('Please select a PDF file to upload.');
-                return;
-            }
+            if (!pdfFile.files.length) return;
 
             const formData = new FormData();
             formData.append('pdf', pdfFile.files[0]);
@@ -112,25 +211,18 @@
             resultsSection.classList.add('hidden');
             errorSection.classList.add('hidden');
             statusSection.classList.remove('hidden');
-            statusMessage.innerText = 'Uploading and processing your PDF... This may take a moment.';
+            statusMessage.innerText = 'Analyzing your document with AI...';
 
             try {
-                // ============================ FINAL STEP: PASTE YOUR BACKEND URL HERE ============================
-                // 1. Go to your Render Dashboard.
-                // 2. Click on your Python "Web Service".
-                // 3. Copy its URL (it is DIFFERENT from your frontend URL).
-                // 4. Paste it below, replacing the entire string.
-                const backendUrl = 'https://quiz-creator-app.onrender.com/generate-quiz';
-                // ===============================================================================================
+                // ============================ CRITICAL: PASTE YOUR REAL BACKEND URL HERE ============================
+                const backendUrl = 'https://<YOUR_PYTHON_WEB_SERVICE_URL_HERE>.onrender.com/generate-quiz';
+                // ==================================================================================================
 
-                const response = await fetch(backendUrl, {
-                    method: 'POST',
-                    body: formData,
-                });
+                const response = await fetch(backendUrl, { method: 'POST', body: formData });
 
                 if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({ error: 'An unknown server error occurred.' }));
-                    throw new Error(errorData.error || `HTTP Error: Status ${response.status}`);
+                    const errorData = await response.json().catch(() => ({ error: 'A server error occurred.' }));
+                    throw new Error(errorData.error || `HTTP Error: ${response.status}`);
                 }
 
                 const data = await response.json();
@@ -145,48 +237,53 @@
                 statusSection.classList.add('hidden');
                 errorMessage.innerText = error.message;
                 errorSection.classList.remove('hidden');
-                uploadSection.classList.remove('hidden'); // Let user retry
+                // Allow user to retry
+                setTimeout(() => {
+                    errorSection.classList.add('hidden');
+                    uploadSection.classList.remove('hidden');
+                }, 4000);
             }
         });
 
         function displayQuiz(data) {
             const mcqContainer = document.getElementById('mcq-container');
             const tfContainer = document.getElementById('tf-container');
+            
+            mcqContainer.innerHTML = `<h3 class="text-2xl font-semibold text-white/90 border-b-2 border-gray-600 pb-2 mb-6 px-4">Multiple Choice Questions</h3>`;
+            tfContainer.innerHTML = `<h3 class="text-2xl font-semibold text-white/90 border-b-2 border-gray-600 pb-2 mb-6 px-4">True/False Questions</h3>`;
 
-            mcqContainer.innerHTML = '<h3 class="text-2xl font-semibold border-b pb-2 mb-4">Multiple Choice Questions</h3>';
-            tfContainer.innerHTML = '<h3 class="text-2xl font-semibold border-b pb-2 mb-4">True/False Questions</h3>';
+            const createQuestionCard = (item, index, type) => {
+                let optionsHtml = (type === 'mcq') 
+                    ? `<ul class="list-none space-y-2 text-gray-300 mt-4">
+                        ${item.options.map(opt => `<li class="p-3 border border-gray-700 rounded-lg bg-gray-900/50">${opt}</li>`).join('')}
+                       </ul>` 
+                    : '';
+                
+                return `
+                    <div class="quiz-card glass-card p-6 rounded-xl mb-4" style="animation-delay: ${index * 100}ms;">
+                        <p class="font-semibold text-lg text-white">${index + 1}. ${item.question}</p>
+                        ${optionsHtml}
+                        <div class="mt-4">
+                            <button class="toggle-answer text-sm font-semibold bg-violet-500/50 hover:bg-violet-500/80 px-4 py-2 rounded-md transition-colors">Show Answer</button>
+                            <p class="hidden answer-text text-green-400 font-bold mt-2 p-2 bg-green-500/20 rounded-md">Answer: ${item.answer}</p>
+                        </div>
+                    </div>`;
+            };
 
-            if (data.multiple_choice && data.multiple_choice.length > 0) {
+            if (data.multiple_choice?.length) {
                 data.multiple_choice.forEach((item, index) => {
-                    const questionEl = document.createElement('div');
-                    questionEl.className = 'mb-6 p-4 border-l-4 border-gray-200';
-                    questionEl.innerHTML = `
-                        <p class="font-semibold mb-2">${index + 1}. ${item.question}</p>
-                        <ul class="list-disc list-inside space-y-1 text-gray-700">
-                            ${item.options.map(opt => `<li>${opt}</li>`).join('')}
-                        </ul>
-                        <button class="toggle-answer text-sm text-blue-600 hover:underline mt-2">Show Answer</button>
-                        <p class="hidden text-green-700 font-bold mt-1">Answer: ${item.answer}</p>
-                    `;
-                    mcqContainer.appendChild(questionEl);
+                    mcqContainer.innerHTML += createQuestionCard(item, index, 'mcq');
                 });
             } else {
-                 mcqContainer.innerHTML += '<p class="text-gray-500">No multiple-choice questions were generated.</p>';
+                 mcqContainer.innerHTML += '<p class="text-gray-400 px-4">No multiple-choice questions were generated.</p>';
             }
 
-            if (data.true_false && data.true_false.length > 0) {
+            if (data.true_false?.length) {
                 data.true_false.forEach((item, index) => {
-                    const questionEl = document.createElement('div');
-                    questionEl.className = 'mb-6 p-4 border-l-4 border-gray-200';
-                    questionEl.innerHTML = `
-                        <p class="font-semibold mb-2">${index + 1}. ${item.question}</p>
-                        <button class="toggle-answer text-sm text-blue-600 hover:underline mt-2">Show Answer</button>
-                        <p class="hidden text-green-700 font-bold mt-1">Answer: ${item.answer}</p>
-                    `;
-                    tfContainer.appendChild(questionEl);
+                    tfContainer.innerHTML += createQuestionCard(item, index, 'tf');
                 });
             } else {
-                tfContainer.innerHTML += '<p class="text-gray-500">No true/false questions were generated.</p>';
+                tfContainer.innerHTML += '<p class="text-gray-400 px-4">No true/false questions were generated.</p>';
             }
 
             document.querySelectorAll('.toggle-answer').forEach(button => {
@@ -199,19 +296,13 @@
         }
 
         exportBtn.addEventListener('click', () => {
-            if (!quizDataForExport) {
-                alert('No quiz data to export!');
-                return;
-            }
-
-            let textContent = 'Generated Quiz\n\n';
-            textContent += '--- Multiple Choice Questions ---\n\n';
+            if (!quizDataForExport) return;
+            let textContent = 'Generated Quiz\n\n--- Multiple Choice Questions ---\n\n';
             quizDataForExport.multiple_choice.forEach((item, index) => {
                 textContent += `${index + 1}. ${item.question}\n`;
                 item.options.forEach(opt => textContent += `- ${opt}\n`);
                 textContent += `Answer: ${item.answer}\n\n`;
             });
-
             textContent += '\n--- True/False Questions ---\n\n';
             quizDataForExport.true_false.forEach((item, index) => {
                 textContent += `${index + 1}. ${item.question}\n`;
@@ -227,4 +318,4 @@
         });
     </script>
 </body>
-</html>```
+</html>
