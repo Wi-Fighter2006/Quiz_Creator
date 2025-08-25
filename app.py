@@ -16,7 +16,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Configure the OpenAI client
-# It automatically reads the OPENAI_API_KEY from your environment variables
+# It automatically reads the OPENAI_API_KEY from your environment variables on Render
 try:
     client = openai.OpenAI()
 except openai.OpenAIError as e:
@@ -28,7 +28,7 @@ def generate_quiz_from_text(text):
     Sends extracted text to the OpenAI API to generate quiz questions.
     """
     if not client:
-        raise ConnectionError("OpenAI client is not initialized. Check your API key.")
+        raise ConnectionError("OpenAI client is not initialized. Check your API key in Render.")
 
     num_mcq = 5
     num_tf = 5
@@ -58,7 +58,6 @@ def generate_quiz_from_text(text):
             ]
         )
         response_content = completion.choices[0].message.content
-        # The response from the model should be a valid JSON string
         return json.loads(response_content)
 
     except openai.APIError as e:
@@ -75,7 +74,6 @@ def generate_quiz_from_text(text):
 def index():
     """A simple route to test if the backend server is running."""
     return "<h1>Quiz Generator Backend</h1><p>The server is running. Use the /generate-quiz endpoint to create a quiz.</p>"
-
 
 @app.route('/generate-quiz', methods=['POST'])
 def generate_quiz_endpoint():
@@ -113,7 +111,6 @@ def generate_quiz_endpoint():
         print(f"An unexpected error occurred: {e}")
         # Return a generic server error message to the user for security
         return jsonify({"error": f"An internal server error occurred. Please check the logs."}), 500
-
 
 if __name__ == '__main__':
     # For local development only
